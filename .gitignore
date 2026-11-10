@@ -1,0 +1,7 @@
+.env
+.gitignore
+.venv/
+__pycache__/
+banco.db
+.idea/
+planejamento.txt
