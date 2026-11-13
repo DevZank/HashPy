@@ -7,8 +7,8 @@ from passlib.context import CryptContext
 load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-#ALGORITHM = os.getenv("ALGORITHM")
-#ACCES_TOKEN_EXPIRE_MINUTES = 30
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TEMP = int(os.getenv("ACCESS_TEMP"))
 
 app = FastAPI()
 
