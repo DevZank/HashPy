@@ -2,10 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from models import User
 from dependencies import get_session
 from main import bcrypt_context
-from schemas import UserSchema
+from schemas import UserSchema, LoginSchema
 from sqlalchemy.orm import Session
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
+
+def create_token(user_id):
+    token = f"fnsyubf7s8fs9{user_id}"
+    return token
 
 @auth_router.get("/")
 async def auth():
@@ -22,7 +26,19 @@ async def create_account(user_schema: UserSchema, session: Session = Depends(get
         raise HTTPException(status_code=400, detail="User already exists!")
     else:
         encrypted_password = bcrypt_context.hash(user_schema.password)
-        new_user = User(user_schema.name, user_schema.password, encrypted_password, user_schema.active, user_schema.admin)
+        new_user = User(user_schema.name, user_schema.email, encrypted_password, user_schema.active, user_schema.admin) # Estava mandando a senha na coluna do e-mail
         session.add(new_user)
         session.commit()
         return {"Message": f"User created! {user_schema.email}"}
+
+@auth_router.post("/login")
+async def login(login_schema: LoginSchema, session: Session = Depends(get_session)):
+    user = session.query(User).filter(User.email==login_schema.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    else:
+        access_token = create_token(user.id)
+        return {
+            "access_token": access_token,
+            "token_type": "Bearer"
+        }
