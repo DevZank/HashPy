@@ -1,23 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
 from models import User
-from dependencies import get_session
+from dependencies import get_session, verify_token
 from main import bcrypt_context, ACCESS_TEMP, ALGORITHM, SECRET_KEY
 from schemas import UserSchema, LoginSchema
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
+from fastapi.security import OAuth2PasswordRequestForm
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 def create_token(user_id, duration=timedelta(minutes=ACCESS_TEMP)):
     expire_date = datetime.now(timezone.utc) + duration
-    dic_info = {"sub": user_id, "exp": expire_date}
+    dic_info = {"sub": str(user_id), "exp": expire_date}
     encoded_jwt = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
     return encoded_jwt
-
-def verify_token(token, id=4, session: Session = Depends(get_session)):
-    user = session.query(User).filter(User.id==id).first()
-    return user
 
 def auth_user(email, password, session):
     user = session.query(User).filter(User.email==email).first()
@@ -61,9 +58,20 @@ async def login(login_schema: LoginSchema, session: Session = Depends(get_sessio
             "token_type": "Bearer"
         }
 
+@auth_router.post("/login-form")
+async def login_form(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
+    user = auth_user(form_data.username, form_data.password, session)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found or invalid credentials")
+    else:
+        access_token = create_token(user.id)
+        return {
+            "access_token": access_token,
+            "token_type": "Bearer"
+        }
+
 @auth_router.get("/refresh")
-async def use_refresh_token(token):
-    user = verify_token(token)
+async def use_refresh_token(user: User = Depends(verify_token)):
     access_token = create_token(user.id)
     return {
         "access_token": access_token,
