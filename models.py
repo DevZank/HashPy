@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, Column, String, Integer, Boolean, Float, ForeignKey
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy_utils.types import ChoiceType
 
 # Cria a conexão do seu banco
@@ -44,12 +44,19 @@ class Order(Base):
     status = Column("status", String, nullable=False) # Pendente, Cancelado, Finalizado
     user = Column("user", ForeignKey("users.id"), nullable=False)
     price = Column("price", Float, nullable=False)
-    # items =
+    items = relationship("OrderItems", cascade="all, delete")
 
     def __init__(self, user, status="PENDENTE", price=0):
         self.user = user
         self.price = price
         self.status = status
+
+    def calculate_price(self):
+        #order_price = 0
+        #for item in self.items:
+            #item_price = item.unit_price * item.quantity
+            #order_price += item_price
+        self.price = sum(item.unit_price * item.quantity for item in self.items)
 
 # Itens Pedido
 class OrderItems(Base):
@@ -70,3 +77,7 @@ class OrderItems(Base):
         self.order = order
 
 # Executa a criação dos metadados do seu banco (Cria efetivamente o banco de dados)
+
+# Migrar o banco de dados
+# criar a migration: alembic revision --autogenerate -m "Exemplo"
+# executar a migração: alembic upgrade head
